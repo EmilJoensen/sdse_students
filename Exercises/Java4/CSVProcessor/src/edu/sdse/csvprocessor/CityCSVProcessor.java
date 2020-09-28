@@ -1,8 +1,10 @@
 package edu.sdse.csvprocessor;
 
 import java.io.BufferedReader;
+
 import java.io.File;
 import java.io.FileReader;
+import java.util.Arrays;
 
 public class CityCSVProcessor {
 	
@@ -16,6 +18,9 @@ public class CityCSVProcessor {
 			
 			while ((line = br.readLine()) != null) {
 				// Parse each line
+				
+				
+				
 				String[] rawValues = line.split(",");
 				
 				int id = convertToInt(rawValues[0]);
@@ -23,7 +28,12 @@ public class CityCSVProcessor {
 				String city = convertToString(rawValues[2]);
 				int population = convertToInt(rawValues[3]);
 				
-				System.out.println("id: " + id + ", year: " + year + ", city: " + city + ", population: " + population);
+				CityRecord cr = new CityRecord(id, year, city, population);
+				
+				System.out.println(cr);
+				
+				
+				//System.out.println("id: " + id + ", year: " + year + ", city: " + city + ", population: " + population);
 				
 				//TODO: Extend the program to process entries!
 			}
