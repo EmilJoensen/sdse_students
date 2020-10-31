@@ -1,5 +1,6 @@
 package org.nypl.journalsystem.hindex.test;
 
+import org.junit.Test;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.nypl.journalsystem.hindex.CitationCalculator;
@@ -19,4 +20,8 @@ public class CitationCalculatorTest {
 	}
 
 	//TODO: Implement test cases for the citation calculator
+	@Test
+	public void foo() {
+		
+	}
 }

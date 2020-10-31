@@ -7,22 +7,30 @@ import org.apache.commons.csv.*;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 
-public class LibrarySystem {
+import org.nypl.journalsystem.core.*;
+
+public class LibrarySystem implements ILibrarySystem {
 	
 	List<Journal> journals;
 	HashMap<Integer, Author> authors;
-	HashMap<String, Publisher> publishers;
+	HashMap<Integer, Article> articles;
 	
 	public LibrarySystem() {
-		journals = new ArrayList<Journal>();
-		authors = new HashMap<Integer, Author>();
+		this.journals = new ArrayList<Journal>();
+		this.authors = new HashMap<Integer, Author>();
+		this.articles = new HashMap<Integer, Article>();
+		
+		// Define publishers
+		Publisher pub_springer = new Publisher("Springer", "Germany");
+		Publisher pub_elsevier = new Publisher("Elsevier", "Netherlands");
+		Publisher pub_naturres = new Publisher("Nature Research", "Great Britain");
 		
 		// Initialize system with default journals.
-		Journal journal1 = new Journal("Higher Education", "Springer", "Germany", "0018-1560");
-		Journal journal2 = new Journal("System", "Elsevier", "Netherlands", "0346-2511");
-		Journal journal3 = new Journal("Chem", "Elsevier", "Netherlands", "2451-9294");
-		Journal journal4 = new Journal("Nature", "Nature Research", "Great Britain", "1476-4687");			
-		Journal journal5 = new Journal("Society", "Springer", "Germany", "0147-2011");
+		Journal journal1 = new Journal("Higher Education", pub_springer, "0018-1560");
+		Journal journal2 = new Journal("System", pub_elsevier, "0346-2511");
+		Journal journal3 = new Journal("Chem", pub_elsevier, "2451-9294");
+		Journal journal4 = new Journal("Nature", pub_naturres, "1476-4687");			
+		Journal journal5 = new Journal("Society", pub_springer, "0147-2011");
 		
 		// Add journals to list of journals
 		journals.add(journal1);
@@ -30,22 +38,6 @@ public class LibrarySystem {
 		journals.add(journal3);
 		journals.add(journal4);
 		journals.add(journal5);
-	
-		
-		// Is this part needed?
-		/*
-		for (Journal j: journals) {
-			
-			// List publisher with Journal
-			Publisher p = new Publisher(j.name, j.location);
-			
-			if (publishers.containsKey(p.name)) {
-				continue;
-			} else {
-				publishers.put(p.name, p)
-			}
-		}
-		*/
 	}
 	
 	public void load() throws FileNotFoundException, IOException {
@@ -82,34 +74,47 @@ public class LibrarySystem {
 		//TODO: Load articles from file and assign them to appropriate journal
 		try (FileReader fr = new FileReader(file); BufferedReader br = new BufferedReader(fr)) {
 			br.readLine();
+			Integer id;
 			String strCurrentline, title, issn;
 			List<Integer> authors;
 			
 			while ((strCurrentline = br.readLine()) != null) {
-				//System.out.println(strCurrentline);
 				
 				String[] splitStr = strCurrentline.split(",");
 				
+				// Extract information
+				id    = Integer.parseInt(splitStr[0].strip());
 				title = splitStr[1].strip().replace("\"", "");
 				issn  = splitStr[3].strip();
 				
-				System.out.println(issn);
-				
 				// Split referenced authors by ';' to get a list
 				String[] splitAuth = splitStr[2].replace("[", "").replace("]", "").split(";");
+				String[] splitCite = splitStr[4].replace("[", "").replace("]", "").split(";");
 				// Convert to Integer
-				authors = new ArrayList<Integer>();
-				for(String s : splitAuth) authors.add(Integer.valueOf(s.strip()));
+				List<Author> l_authors = new ArrayList<Author>();
+				List<Integer> l_citations = new ArrayList<Integer>();
+				for(String s: splitAuth) {
+					int aid = Integer.valueOf(s.strip());
+					Author a = this.authors.get(aid);
+					l_authors.add(a);
+				}
 				
-				Article article = new Article(title, authors);
+				for (String s: splitCite) {
+					int cid = Integer.valueOf(s.strip());
+					l_citations.add(cid);
+				}
 				
+				// Create new Article object with extracted info
+				Article article = new Article(id, title, issn, l_authors, l_citations);
+				
+				// Save article in total list of articles
+				articles.put(id, article);
+				
+				// Put articles in journals
 				for (Journal j: journals) {
-					
-					
 					if (j.issn.equals(issn)) {
 						j.addarticle(article);
 					}
-					//System.out.println(j.articles.size());
 				}
 			}
 			
@@ -122,10 +127,62 @@ public class LibrarySystem {
 	
 	public void listContents() {
 		System.out.println("Contents:");
-		//TODO: Print all journals with their respective articles and authors to the console.
+
+		// Call getArticles function
 		for (Journal j: journals) {
-			j.listarticles();
+			j.getArticles();
 		}
+	}
+	
+	public Collection<? extends IAuthor> getAllAuthors() {
+		return this.authors.values();
+	}
+	
+	public Collection<? extends IJournal> getAllJournals() {
+		return this.journals;
+	}
+	
+	public Collection<? extends IArticle> getArticlesByAuthor(Author i_author) {
+		
+		Map<Author, List<Article>> AuthorArticle = new HashMap<Author, List<Article>>();
+		
+		// Loop over every author in every article
+		for (Article l_article: articles.values()) {
+			for (Author l_author: l_article.getAuthors()) {
+				// If the author already exists add article to the list
+				if (AuthorArticle.containsKey(l_author)) {
+					AuthorArticle.get(l_author).add(l_article);
+				} else { // Else make a new list of articles for that author
+					List<Article> newarticle = new ArrayList<Article>();
+					newarticle.add(l_article);
+					AuthorArticle.put(l_author, newarticle);
+				}
+			}
+		}
+	}
+
+	public Collection<? extends IArticle> getArticlesCitedByArticle(Article a) {
+		
+		List<Integer> i_cited = a.getCitations();
+		List<Article> citedarticles = new ArrayList<Article>();
+		
+		for (Integer i_cite: i_cited) {
+			citedarticles.add(articles.get(i_cite));
+		}
+		
+		return citedarticles;
+	}
+	
+	public Collection<? extends IArticle> getArticlesCitingArticle(Article l_article) {
+		List<Article> children_cite = new ArrayList<Article>();
+		
+		for (Article a: articles.values()) {
+			for (Integer i_cite: l_article.getCitations()) {
+				if (i_cite == a.id) {children_cite.add(a);}
+			}
+		}
+		
+		return children_cite;
 	}
 	
 	public static final void main(String[] args) throws Exception {
@@ -134,4 +191,5 @@ public class LibrarySystem {
 		librarySystem.load();
 		librarySystem.listContents();
 	}
+	
 }

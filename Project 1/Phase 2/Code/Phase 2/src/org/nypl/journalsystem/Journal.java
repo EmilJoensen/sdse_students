@@ -1,34 +1,65 @@
 package org.nypl.journalsystem;
 import java.util.*;
 
-public class Journal {
+import org.nypl.journalsystem.core.*;
+
+import org.nypl.journalsystem.core.IJournal;
+
+public class Journal implements IJournal {
 	
 	public String name;
-	public String publisher;
+	public Publisher publisher;
 	public String location;
 	public String issn;
 	
 	public List<Article> articles;
 	
-	public Journal (String name, String publisher, String location, String issn) {
+	public Journal (String name, Publisher publisher, String issn) {
 		this.name = name;
 		this.publisher = publisher;
-		this.location = location;
 		this.issn = issn;
 		this.articles = new ArrayList<Article>();
 	}
 	
 	public void addarticle(Article article) {
-		// TODO
 		this.articles.add(article);
 	}
 	
-	public void listarticles() {
+	public Collection<? extends IArticle> getArticles() {
 		
-		if (articles.size() > 1) {
-			System.out.format("Name: %s, Publisher: %s, Location: %s, ISSN: %s, Full issue\n", name, publisher, location, issn);
-		} else {
-			System.out.format("Name: %s, Publisher: %s, Location: %s, ISSN: %s, Not Full issue\n", name, publisher, location, issn);
+		System.out.format("Name: %s, Publisher: %s, Location: %s, ISSN: %s, Full issue: %s\n", 
+						  name, 
+						  this.publisher.name, 
+						  this.publisher.location, 
+						  issn, 
+						  isFullIssue()
+		);
+		
+		for (Article a: this.articles) {
+			System.out.println(a.getTitle());
 		}
+		
+		return articles;
+	
+	}
+	
+	public String getIssn() {
+		return this.issn;
+	}
+	
+	public String getName() {
+		return this.name;
+	}
+	
+	public boolean isFullIssue() {
+		if (articles.size() > 1) {
+			return true;
+		} else {
+			return false;
+		}
+	}
+	
+	public iPublisher getPublisher () {
+		
 	}
 }
